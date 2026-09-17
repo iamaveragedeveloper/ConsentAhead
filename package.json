@@ -1,0 +1,21 @@
+{
+  "name": "consent-ahead",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal Data Firewall — Privacy-first Chrome Extension",
+  "scripts": {
+    "dev:extension": "pnpm -F extension dev",
+    "build:extension": "pnpm -F extension build",
+    "build:api": "pnpm -F api build",
+    "build:all": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

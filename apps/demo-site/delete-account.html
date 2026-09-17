@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DataHaven — Account Deletion & Data Rights Portal</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; max-width: 600px; margin: 60px auto; padding: 0 20px; line-height: 1.7; }
+    h1 { color: #fff; }
+    .card { background: #1e293b; border: 1px solid #334155; padding: 2rem; border-radius: 12px; margin-top: 1.5rem; }
+    label { display: block; margin-top: 1rem; font-weight: bold; font-size: 0.9rem; }
+    input { width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #fff; margin-top: 0.25rem; box-sizing: border-box; }
+    button { background: #ef4444; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: bold; margin-top: 1.5rem; cursor: pointer; width: 100%; }
+    button:hover { background: #dc2626; }
+  </style>
+</head>
+<body>
+  <h1>Account Deletion & Data Right to be Forgotten</h1>
+  <p>Under GDPR, CCPA, and global privacy standards, you have the right to request permanent deletion of your profile data stored in DataHaven systems.</p>
+
+  <div class="card">
+    <h2>Request Data Erasure</h2>
+    <form id="delete-form">
+      <label for="del-email">Account Email Address</label>
+      <input type="email" id="del-email" required placeholder="alex@company.com">
+
+      <label for="del-reason">Reason for Request (Optional)</label>
+      <input type="text" id="del-reason" placeholder="Privacy preferences / no longer using service">
+
+      <button type="submit">Submit Account Deletion Request</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('delete-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Deletion request submitted! Your account and associated profile data will be permanently purged within 30 days.');
+    });
+  </script>
+</body>
+</html>

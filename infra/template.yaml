@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ConsentAhead / Personal Data Firewall Backend Infrastructure
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        BEDROCK_REGION: us-east-1
+        BEDROCK_MODEL_ID: amazon.nova-lite-v1:0
+
+Resources:
+  ConsentAheadApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../services/api/
+      Handler: dist/handlers/health.handler
+      Events:
+        HealthApi:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: get
+            RestApiId: !Ref ConsentAheadApi
+
+  FormAnalyzeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../services/api/
+      Handler: dist/handlers/formAnalyze.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+      Events:
+        FormAnalyzeApi:
+          Type: Api
+          Properties:
+            Path: /form/analyze
+            Method: post
+            RestApiId: !Ref ConsentAheadApi
+
+  PolicyDiscoverFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../services/api/
+      Handler: dist/handlers/policyDiscover.handler
+      Events:
+        PolicyDiscoverApi:
+          Type: Api
+          Properties:
+            Path: /policy/discover
+            Method: post
+            RestApiId: !Ref ConsentAheadApi
+
+  PolicyAnalyzeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../services/api/
+      Handler: dist/handlers/policyAnalyze.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+      Events:
+        PolicyAnalyzeApi:
+          Type: Api
+          Properties:
+            Path: /policy/analyze
+            Method: post
+            RestApiId: !Ref ConsentAheadApi
+
+  CompanyPathwaysFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../services/api/
+      Handler: dist/handlers/companyPathways.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+      Events:
+        CompanyPathwaysApi:
+          Type: Api
+          Properties:
+            Path: /company/pathways
+            Method: post
+            RestApiId: !Ref ConsentAheadApi
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL for ConsentAhead Service
+    Value: !Sub "https://${ConsentAheadApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

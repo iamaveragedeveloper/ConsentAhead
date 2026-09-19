@@ -163,7 +163,8 @@ async function analyzeForm(payload: FormDetectedPayload): Promise<DisclosurePrev
         sensitivity: cf.sensitivity,
         requirement: cf.requirement,
         selected: true, // default: all selected; user can deselect
-        vaultKey: mapCategoryToVaultKey(cf.category, original?.autocomplete, original?.name),
+        vaultKey: mapCategoryToVaultKey(cf.category, original),
+        selector: original?.selector,
       };
     });
 
@@ -184,9 +185,11 @@ async function analyzeForm(payload: FormDetectedPayload): Promise<DisclosurePrev
 
 function mapCategoryToVaultKey(
   category: string,
-  autocomplete?: string,
-  name?: string
+  field?: { autocomplete?: string; name?: string; label?: string; placeholder?: string; type?: string }
 ): string | undefined {
+  if (category === "consent" || category === "financial") return undefined; // never auto-fill
+
+  const autocomplete = field?.autocomplete;
   if (autocomplete) {
     const acMap: Record<string, string> = {
       email: "email",
@@ -195,32 +198,55 @@ function mapCategoryToVaultKey(
       "family-name": "lastName",
       name: "name",
       "street-address": "address.line1",
+      "address-line1": "address.line1",
       "postal-code": "address.postalCode",
       "address-level1": "address.state",
       "address-level2": "address.city",
       country: "address.country",
+      "country-name": "address.country",
       bday: "dateOfBirth",
       organization: "company",
       "organization-title": "jobTitle",
+      url: "website",
     };
     if (acMap[autocomplete]) return acMap[autocomplete];
   }
 
-  const n = (name ?? "").toLowerCase();
-  if (n.includes("email")) return "email";
-  if (n.includes("phone") || n.includes("mobile") || n.includes("tel")) return "phone";
-  if (n.includes("first")) return "firstName";
-  if (n.includes("last") || n.includes("surname")) return "lastName";
-  if (n.includes("name")) return "name";
-  if (n.includes("dob") || n.includes("birth")) return "dateOfBirth";
-  if (n.includes("address") || n.includes("street")) return "address.line1";
-  if (n.includes("city")) return "address.city";
-  if (n.includes("state") || n.includes("province")) return "address.state";
-  if (n.includes("zip") || n.includes("postal") || n.includes("pin")) return "address.postalCode";
-  if (n.includes("country")) return "address.country";
-  if (n.includes("company") || n.includes("org")) return "company";
-  if (n.includes("title") || n.includes("job") || n.includes("designation")) return "jobTitle";
-
+  // Fall back to the field's name, label and placeholder (sites like Google Forms have no
+  // name/autocomplete, only a visible question title). Ordered most-specific first.
+  const text = [field?.name, field?.label, field?.placeholder].filter(Boolean).join(" ").toLowerCase();
+  // Date of birth: any wording (Birthdate, DOB, "When were you born?"), including a date split
+  // over Day / Month / Year boxes. "Place of birth" is a different question, so it is excluded.
+  if (/(dob|d\.o\.b|birth|born)/.test(text) && !/(place|country|city|town|state)\s*of\s*birth|birth\s*(place|country|city|town|state)/.test(text)) {
+    // A format hint such as "DD/MM/YYYY" means the box takes the whole date, not one part of it
+    if (/(dd|mm|yyyy|yy)\s*[\/.\-]\s*(dd|mm|yyyy|yy)/.test(text)) return "dateOfBirth";
+    // Which part a split box wants comes from its label or name, never from a placeholder
+    const partText = [field?.name, field?.label].filter(Boolean).join(" ").toLowerCase();
+    const has = (word: string) => new RegExp("(^|[^a-z])(" + word + ")([^a-z]|$)").test(partText);
+    if (has("day|dd")) return "dateOfBirth.day";
+    if (has("month|mm")) return "dateOfBirth.month";
+    if (has("year|yyyy|yy")) return "dateOfBirth.year";
+    return "dateOfBirth";
+  }
+  const rules: [RegExp, string][] = [
+    [/e-?mail/, "email"],
+    [/\b(phone|mobile|cell|telephone|contact number|whatsapp)\b/, "phone"],
+    [/first.?name|given.?name|forename/, "firstName"],
+    [/last.?name|family.?name|surname/, "lastName"],
+    [/\b(dob|birth|birthday)\b|date.?of.?birth/, "dateOfBirth"],
+    [/\b(pin.?code|zip|postal)\b/, "address.postalCode"],
+    [/\b(city|town)\b/, "address.city"],
+    [/\b(state|province)\b/, "address.state"],
+    [/\bcountry\b/, "address.country"],
+    [/\b(address|street)\b/, "address.line1"],
+    [/\b(company|employer|organi[sz]ation|workplace|college|university)\b/, "company"],
+    [/job.?title|designation|\brole\b|occupation|position/, "jobTitle"],
+    [/\b(website|url|portfolio|linkedin|github)\b/, "website"],
+    [/full.?name|your.?name|\bname\b/, "name"],
+  ];
+  for (const [pattern, key] of rules) {
+    if (pattern.test(text)) return key;
+  }
   return undefined;
 }
 
@@ -245,6 +271,31 @@ chrome.runtime.onMessage.addListener(
         });
 
       return true; // keep channel open for async response
+    }
+
+    if (message.type === "OPEN_POPUP") {
+      // The user clicked the shield beside a field: open the toolbar popup.
+      // Chrome hides a tab's URL from an extension that has no access to the site yet, so
+      // pass along the URL of the page the user just clicked on (their own action) for the
+      // popup to show the "Allow access?" screen.
+      const tabId = sender.tab?.id;
+      const remember =
+        tabId !== undefined && sender.url
+          ? chrome.storage.session.set({ pendingTab: { tabId, url: sender.url } })
+          : Promise.resolve();
+
+      remember
+        .then(() => chrome.action.openPopup(sender.tab?.windowId ? { windowId: sender.tab.windowId } : undefined))
+        .then(() => sendResponse({ opened: true }))
+        .catch(() => {
+          // Chrome refused to open it programmatically; point at the toolbar icon instead
+          if (tabId !== undefined) {
+            chrome.action.setBadgeBackgroundColor({ tabId, color: "#6366f1" });
+            chrome.action.setBadgeText({ tabId, text: "•" });
+          }
+          sendResponse({ opened: false });
+        });
+      return true; // async response
     }
 
     if (message.type === "GET_ANALYSIS") {

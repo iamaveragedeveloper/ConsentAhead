@@ -64,31 +64,51 @@ export async function saveVaultProfile(profile: VaultProfile): Promise<void> {
   });
 }
 
-export async function getVaultProfile(): Promise<VaultProfile | null> {
+export type VaultState = "empty" | "ok" | "unreadable";
+
+/** Reads the vault and reports why it may be unusable (missing vs. cannot be decrypted). */
+export async function getVaultState(): Promise<{ state: VaultState; profile: VaultProfile | null }> {
   const record = await dbGet<VaultRecord>(STORES.VAULT, "profile");
-  if (!record) return null;
+  if (!record) return { state: "empty", profile: null };
   try {
-    return await decrypt<VaultProfile>(record.ciphertext, record.iv);
-  } catch {
-    return null;
+    return { state: "ok", profile: await decrypt<VaultProfile>(record.ciphertext, record.iv) };
+  } catch (err) {
+    console.error("[DataFirewall] Vault could not be decrypted:", err);
+    return { state: "unreadable", profile: null };
   }
 }
 
-export async function getVaultValue(key: string): Promise<string | undefined> {
-  const profile = await getVaultProfile();
+export async function getVaultProfile(): Promise<VaultProfile | null> {
+  return (await getVaultState()).profile;
+}
+
+/** Looks up a dotted key (e.g. "address.city") in a profile. "name" falls back to first + last. */
+export function resolveVaultValue(profile: VaultProfile | null, key: string): string | undefined {
   if (!profile) return undefined;
 
-  const parts = key.split(".");
+  if (key === "name" && !profile.name) {
+    const full = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
+    return full || undefined;
+  }
+
+  // A date of birth split over several boxes: take the part from the stored YYYY-MM-DD
+  const part = /^dateOfBirth\.(day|month|year)$/.exec(key);
+  if (part) {
+    const d = /^(\d{4})-(\d{2})-(\d{2})/.exec(profile.dateOfBirth ?? "");
+    if (!d) return undefined;
+    return part[1] === "year" ? d[1] : part[1] === "month" ? d[2] : d[3];
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let value: any = profile;
-  for (const part of parts) {
-    if (value && typeof value === "object") {
-      value = value[part];
-    } else {
-      return undefined;
-    }
+  for (const part of key.split(".")) {
+    if (value && typeof value === "object") value = value[part];
+    else return undefined;
   }
-  return typeof value === "string" ? value : undefined;
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+export async function getVaultValue(key: string): Promise<string | undefined> {
+  return resolveVaultValue(await getVaultProfile(), key);
 }
 
 // ─── Disclosure Events ────────────────────────────────────────────────────────
@@ -99,6 +119,10 @@ export async function saveDisclosureEvent(event: DisclosureEvent): Promise<void>
 
 export async function getAllDisclosureEvents(): Promise<DisclosureEvent[]> {
   return dbGetAll<DisclosureEvent>(STORES.DISCLOSURE_EVENTS);
+}
+
+export async function deleteDisclosureEvent(id: string): Promise<void> {
+  await dbDelete(STORES.DISCLOSURE_EVENTS, id);
 }
 
 // ─── Company Profiles ─────────────────────────────────────────────────────────

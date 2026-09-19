@@ -65,7 +65,7 @@ const KEYWORD_MAP: {
   { patterns: /\b(first.?name|given.?name|forename)\b/i, category: "basic_personal", sensitivity: "low" },
   { patterns: /\b(last.?name|family.?name|surname)\b/i, category: "basic_personal", sensitivity: "low" },
   { patterns: /\b(full.?name|your.?name)\b/i, category: "basic_personal", sensitivity: "low" },
-  { patterns: /\b(dob|date.?of.?birth|birthday|birth.?date|born)\b/i, category: "identity", sensitivity: "high" },
+  { patterns: /\b(dob|d\.o\.b|date.?of.?birth|birthday|birth.?date|born)\b/i, category: "identity", sensitivity: "high" },
   { patterns: /\b(gender|sex)\b/i, category: "identity", sensitivity: "high" },
   { patterns: /\b(address|street|city|state|province|zip|postal|pincode|pin.?code)\b/i, category: "location", sensitivity: "high" },
   { patterns: /\b(country|nation)\b/i, category: "location", sensitivity: "medium" },
@@ -75,6 +75,7 @@ const KEYWORD_MAP: {
   { patterns: /\b(job.?title|designation|position|role|occupation)\b/i, category: "professional", sensitivity: "low" },
   { patterns: /\b(resume|cv|portfolio)\b/i, category: "professional", sensitivity: "medium" },
   { patterns: /\b(age)\b/i, category: "identity", sensitivity: "medium" },
+  { patterns: /^\s*(name|your name|student name|applicant name|participant name)\s*\*?\s*$/i, category: "basic_personal", sensitivity: "low" },
   { patterns: /\b(agree|consent|terms|newsletter|marketing|subscribe|opt.?in)\b/i, category: "consent", sensitivity: "low" },
   { patterns: /\b(health|medical|condition|diagnosis|disability|insurance)\b/i, category: "health", sensitivity: "high" },
 ];

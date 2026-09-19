@@ -13,6 +13,7 @@ export default defineConfig({
         options: resolve(__dirname, "options.html"),
         background: resolve(__dirname, "src/background/serviceWorker.ts"),
         content: resolve(__dirname, "src/content/formDetector.ts"),
+        trigger: resolve(__dirname, "src/content/trigger.ts"),
       },
       output: {
         entryFileNames: (chunk) => {

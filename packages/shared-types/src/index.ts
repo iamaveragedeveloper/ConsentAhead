@@ -93,6 +93,7 @@ export interface DisclosureField {
   requirement: Requirement;
   selected: boolean;
   vaultKey?: string; // key in local vault to fill this field
+  selector?: string; // CSS selector locating the field on the page
 }
 
 export interface DisclosurePreview {
@@ -263,7 +264,9 @@ export type ExtensionMessageType =
   | "FILL_FIELDS"
   | "RECORD_DISCLOSURE"
   | "GET_DISCLOSURE_PREVIEW"
-  | "CLEAR_SESSION";
+  | "CLEAR_SESSION"
+  | "TRIGGER_SCAN"
+  | "OPEN_POPUP";
 
 export interface ExtensionMessage<T = unknown> {
   type: ExtensionMessageType;

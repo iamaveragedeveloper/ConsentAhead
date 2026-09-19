@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Personal Data Firewall",
   "short_name": "DataFirewall",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Privacy-first browser extension. See what websites ask for your data — and what their own policies say they'll do with it.",
   "icons": {
     "16": "icons/icon16.png",
@@ -26,8 +26,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*/*", "http://*/*"],
-      "js": ["content.js"],
+      "matches": ["https://*/*", "http://*/*", "file:///*"],
+      "js": ["trigger.js"],
       "run_at": "document_idle"
     }
   ],
@@ -35,19 +35,6 @@
     "page": "options.html",
     "open_in_tab": true
   },
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting"
-  ],
-  "host_permissions": [
-    "https://*/*",
-    "http://*/*"
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["icons/*"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  "permissions": ["storage", "scripting", "activeTab"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"]
 }

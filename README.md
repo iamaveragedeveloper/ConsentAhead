@@ -152,8 +152,8 @@ Or serve it locally using any static web server (`npx serve apps/demo-site`).
 
 **What to try:**
 1. Open `index.html` in Chrome.
-2. Notice the **Personal Data Firewall** floating shield badge at the bottom right.
-3. Click the extension icon in the toolbar.
+2. Click the **Personal Data Firewall** icon in the toolbar (pin it from the puzzle-piece menu).
+3. Optional: press **Turn on** at the bottom of the popup to show a small shield beside form fields on that site from then on.
 4. View the 8 detected form fields, field sensitivity badges, and policy findings.
 5. Open the Extension Dashboard (right-click icon → Options or click "Dashboard" in popup) to setup your local Vault.
 6. Return to the registration page, choose **"Minimum Fill"**, and watch compulsory fields autofill automatically while optional fields are left untouched!

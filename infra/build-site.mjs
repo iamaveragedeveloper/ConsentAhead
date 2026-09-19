@@ -131,6 +131,13 @@ const zipBuf = makeZip(zipFiles);
 writeFileSync(path.join(out, "downloads", zipName), zipBuf);
 const zipKb = Math.round(zipBuf.length / 1024);
 
+// Chrome Web Store zip: manifest.json must be at the top level (no wrapping folder). Not published on the site.
+const storeDir = path.join(root, "store-dist");
+rmSync(storeDir, { recursive: true, force: true });
+mkdirSync(storeDir, { recursive: true });
+const storeName = `data-firewall-store-v${version}.zip`;
+writeFileSync(path.join(storeDir, storeName), makeZip(zipFiles.map((f) => ({ name: f.name.replace(/^data-firewall\//, ""), data: f.data }))));
+
 // ── Optional media ──
 const mediaDir = path.join(root, "infra/media");
 const media = existsSync(mediaDir) ? readdirSync(mediaDir) : [];
@@ -150,7 +157,7 @@ const shotsBlock = shots.length
 const judges = `<h1>For judges</h1>
 <p class="meta">Data Firewall ${esc(version)} · a Chrome extension that shows what a site will do with your data before you share it</p>
 
-<div class="card"><b>The idea in one line.</b><br>When you click a form field, a small shield appears. Press it and the extension reads that site's privacy policy and terms right in your browser, points to the exact sentences that matter, and fills the form from a private vault that never leaves your device.</div>
+<div class="card"><b>The idea in one line.</b><br>Open the extension on a page with a form. It reads that site's privacy policy and terms right in your browser, points to the exact sentences that matter, and fills the form from a private vault that never leaves your device.</div>
 
 ${videoBlock}
 
@@ -161,9 +168,10 @@ ${videoBlock}
 <li>In Chrome open <code>chrome://extensions</code> and switch on <b>Developer mode</b> (top right).</li>
 <li>Click <b>Load unpacked</b> and choose the <code>data-firewall</code> folder.</li>
 <li>Click the extension icon. It asks you to create an account: use any name, email and password. It takes 20 seconds and stays on your device. Then save a few details in the Vault.</li>
-<li>Open the <a href="/demo/index.html">demo company sign-up page</a> and click any field. A shield appears beside it.</li>
-<li>Press the shield. Allow access to the site, and watch the privacy scan run. Open a finding to jump to the exact sentence in the company's policy, highlighted.</li>
+<li>Open the <a href="/demo/index.html">demo company sign-up page</a>. Click the extension icon in the Chrome toolbar (pin it from the puzzle-piece menu if you don't see it).</li>
+<li>Watch the privacy scan run. Open a finding to jump to the exact sentence in the company's policy, highlighted.</li>
 <li>Choose what to fill and press <b>Fill</b>.</li>
+<li>Optional: press <b>Turn on</b> at the bottom of the popup to have a small shield appear beside form fields on that site from then on.</li>
 </ol>
 <p class="small">Also works on any real form, including Google Forms. Nothing is submitted for you.</p>
 
@@ -209,4 +217,5 @@ writeFileSync(
 );
 cpSync(path.join(root, "apps/demo-site"), path.join(out, "demo"), { recursive: true });
 
+console.log(`Chrome Web Store zip: store-dist/${storeName}`);
 console.log(`Built site-dist/ (index, judges, privacy, terms, demo, downloads/${zipName} ${zipKb} KB${video ? ", video" : ""}${shots.length ? `, ${shots.length} screenshots` : ""})`);

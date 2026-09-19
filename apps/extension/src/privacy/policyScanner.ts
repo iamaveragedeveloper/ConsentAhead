@@ -244,6 +244,29 @@ export function analyzePolicyText(text: string, sourceUrl: string, source: DocKi
 
 // ─── Fetching ────────────────────────────────────────────────────────────────
 
+// When the user opened the extension from the toolbar without allowing the site permanently, the
+// popup cannot fetch the site's own policy directly. The page itself can, so ask it to.
+let tabBridge: { tabId: number; origin: string } | null = null;
+
+/** Lets same-site documents be read through the page the user is on. */
+export function readSameSiteThroughTab(tabId: number, origin: string): void {
+  tabBridge = { tabId, origin };
+}
+
+function toText(body: string, contentType: string): string {
+  const isHtml = contentType.includes("html") || body.trimStart().startsWith("<");
+  return isHtml ? htmlToText(body) : body;
+}
+
+async function fetchViaTab(url: string, timeoutMs: number): Promise<string> {
+  const res = await Promise.race([
+    chrome.tabs.sendMessage(tabBridge!.tabId, { type: "FETCH_TEXT", payload: { url } }),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+  ]);
+  if (!res?.ok) throw new Error("tab fetch failed");
+  return toText(res.body, res.contentType);
+}
+
 async function fetchText(url: string, timeoutMs: number): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -251,8 +274,16 @@ async function fetchText(url: string, timeoutMs: number): Promise<string> {
     const res = await fetch(url, { credentials: "omit", redirect: "follow", signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = (await res.text()).slice(0, 1_500_000);
-    const isHtml = (res.headers.get("content-type") ?? "").includes("html") || body.trimStart().startsWith("<");
-    return isHtml ? htmlToText(body) : body;
+    return toText(body, res.headers.get("content-type") ?? "");
+  } catch (err) {
+    let sameSite = false;
+    try {
+      sameSite = tabBridge !== null && new URL(url).origin === tabBridge.origin;
+    } catch {
+      /* not a URL */
+    }
+    if (sameSite) return fetchViaTab(url, timeoutMs);
+    throw err;
   } finally {
     clearTimeout(timer);
   }

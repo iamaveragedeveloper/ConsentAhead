@@ -4,6 +4,7 @@
 // NEVER stores personal vault data. NEVER auto-submits forms.
 
 import { classifyFields } from "@consent-ahead/field-classifier";
+import { reconcileShields, unregisterShield } from "../access/siteShield";
 import type {
   ExtensionMessage,
   FormDetectedPayload,
@@ -317,4 +318,12 @@ chrome.runtime.onMessage.addListener(
 // Keep service worker alive while processing
 chrome.runtime.onInstalled.addListener(() => {
   console.log("[DataFirewall] Extension installed/updated");
+  void reconcileShields();
+});
+
+chrome.runtime.onStartup.addListener(() => void reconcileShields());
+
+// When a site's access is removed (for example in the dashboard), its shield goes with it
+chrome.permissions.onRemoved.addListener((removed) => {
+  for (const pattern of removed.origins ?? []) void unregisterShield(pattern.replace(/\/\*$/, ""));
 });

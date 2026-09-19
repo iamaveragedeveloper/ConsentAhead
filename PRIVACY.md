@@ -8,7 +8,7 @@ Data Firewall is a browser extension that shows what a website asks for, reads w
 
 - Your details stay on your device, encrypted. We never receive them.
 - No online accounts, no analytics, no tracking, no advertising, and we never sell data. Accounts are local, exist only on your device, and each one has its own separate vault.
-- Nothing is scanned on a site until you open the extension there (from the shield beside a field, or the toolbar icon) and allow access to that site.
+- Nothing is scanned on a site until you open the extension there with the toolbar icon, or with the shield on a site you have turned the shield on for.
 - You can view, export or delete everything the extension stores, at any time.
 
 ## 2. Information stored on your device
@@ -20,12 +20,12 @@ The extension keeps the following in your browser's local storage. None of it le
 - Your activity: for each form you fill, the site's domain, the time, the categories of data shared (for example “Contact”), how sensitive each was, and whether you filled required fields only. It never records the values you filled in.
 - Your company list: sites you have used the extension on, their policy links, and any deletion or data-request links you add yourself.
 - Privacy-scan results: the findings and short quotes taken from a site's public privacy policy or terms, kept for up to 24 hours so a repeat visit is instant.
-- A temporary note of the address of the tab where you pressed the shield, kept in the browser's session storage and cleared when the browser closes.
+- A temporary note of the address of the tab where you pressed the shield, kept in the browser's session storage and cleared when the browser closes. Sites you turned the shield on for are remembered by the browser as your permission for that site.
 
 ## 3. What the extension reads on web pages
 
-- Before you allow a site: a very small script runs on pages you visit. It only notices that you clicked into a text field so it can show the shield beside it. It reads no labels, values or page text, and sends nothing anywhere.
-- After you allow a site: the extension reads the names, labels and types of the form fields on that page, and links to the site's privacy policy and terms.
+- On sites you turn the shield on for: a very small script runs on those pages only. It only notices that you clicked into a text field so it can show the shield beside it. It reads no labels, values or page text, and sends nothing anywhere. On every other site, nothing of ours runs until you click the toolbar icon.
+- When you open the extension on a page: it reads the names, labels and types of the form fields on that page, and links to the site's privacy policy and terms.
 - It never reads what you have typed into a field, never touches password fields, fills a form only when you press Fill, and never submits a form.
 
 ## 4. The privacy scan
@@ -46,8 +46,8 @@ The project includes an optional cloud service (built on AWS) for AI-assisted po
 
 - Storage: to keep your vault, activity and settings on your device.
 - Active tab and scripting: to read the form on the page you are looking at, and to fill it when you press Fill.
-- Access to sites (optional): requested one site at a time, only when you allow it. You can remove it at any time in the dashboard under Data & access.
-- A script on all web pages: only to show the shield beside a text field when you click into it, as described above.
+- Access to sites (optional): requested one site at a time, only when you choose to show the shield there or allow a policy page to be read. You can remove it at any time in the dashboard under Data & access.
+- No access to all websites: the extension has no script that runs on every page.
 
 ## 8. Your choices
 

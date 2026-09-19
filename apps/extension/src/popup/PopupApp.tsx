@@ -18,12 +18,14 @@ import { recordDisclosure } from "../disclosure/disclosureRecorder";
 import { getLastAccount, getSession, signOut, type Account } from "../auth/authStore";
 import {
   guessDocument,
+  readSameSiteThroughTab,
   scanDocument,
   type DocKind,
   type ScanFinding,
   type SourceResult,
   type Tone,
 } from "../privacy/policyScanner";
+import { enableShield, registerShield, shieldEnabled, siteKey } from "../access/siteShield";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
@@ -99,6 +101,8 @@ export function PopupApp() {
   const [origin, setOrigin] = useState("");
   const [tabId, setTabId] = useState<number | null>(null);
   const [denied, setDenied] = useState(false);
+  const [shield, setShield] = useState<"on" | "off" | null>(null);
+  const [shieldDenied, setShieldDenied] = useState(false);
 
   const [preview, setPreview] = useState<DisclosurePreview | null>(null);
   const [fields, setFields] = useState<DisclosureField[]>([]);
@@ -145,6 +149,9 @@ export function PopupApp() {
       // Chrome hides a tab's URL until the extension has access to the site. When the popup was
       // opened from the shield on the page, that click passed the URL along.
       let tabUrl = tab.url;
+      // Chrome shows the URL only when the extension may act on this tab: after a click on the
+      // toolbar icon (activeTab) or when the site was allowed. Then no extra prompt is needed.
+      const hasTabAccess = Boolean(tabUrl);
       if (!tabUrl) {
         const { pendingTab } = await chrome.storage.session.get("pendingTab");
         if (pendingTab?.tabId === tab.id) tabUrl = pendingTab.url;
@@ -163,9 +170,12 @@ export function PopupApp() {
       setOrigin(url.origin);
       setTabId(tab.id);
 
-      const allowed =
-        url.protocol === "file:" || (await chrome.permissions.contains({ origins: [`${url.origin}/*`] }));
-      if (!allowed) return setScreen("no-access");
+      const siteAllowed = await chrome.permissions.contains({ origins: [`${siteKey(url.origin)}/*`] });
+      if (!(url.protocol === "file:" || hasTabAccess || siteAllowed)) return setScreen("no-access");
+
+      // Without permanent access, the site's own policy is read through the page itself
+      if (!siteAllowed) readSameSiteThroughTab(tab.id, url.origin);
+      if (url.protocol !== "file:") setShield((await shieldEnabled(url.origin)) ? "on" : "off");
 
       await scanPage(tab.id);
     })();
@@ -173,9 +183,19 @@ export function PopupApp() {
 
   const allowAccess = async () => {
     setDenied(false);
-    const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
-    if (granted && tabId !== null) await scanPage(tabId);
-    else setDenied(true);
+    const granted = await chrome.permissions.request({ origins: [`${siteKey(origin)}/*`] });
+    if (granted && tabId !== null) {
+      await registerShield(origin);
+      setShield("on");
+      await scanPage(tabId);
+    } else setDenied(true);
+  };
+
+  const turnOnShield = async () => {
+    setShieldDenied(false);
+    const ok = await enableShield(origin, tabId);
+    setShield(ok ? "on" : "off");
+    if (!ok) setShieldDenied(true);
   };
 
   useEffect(() => {
@@ -244,7 +264,7 @@ export function PopupApp() {
 
   const allowPolicySite = async (r: SourceResult) => {
     if (!r.origin) return;
-    const granted = await chrome.permissions.request({ origins: [`${r.origin}/*`] });
+    const granted = await chrome.permissions.request({ origins: [`${siteKey(r.origin)}/*`] });
     if (!granted) return;
     const fresh = await scanDocument(r.kind, r.url, { force: true });
     setScan((s) => ({ ...s, results: [...s.results.filter((x) => x.kind !== r.kind), fresh] }));
@@ -336,7 +356,7 @@ export function PopupApp() {
 
         {screen === "unknown" && (
           <Centered icon={<ShieldCheck className="h-8 w-8 text-primary" />} title="Ready when you are">
-            Click into a form field on the page and press the shield beside it to review the form.
+            Open a page with a form, then click the Data Firewall icon in your toolbar.
           </Centered>
         )}
 
@@ -383,7 +403,7 @@ export function PopupApp() {
 
         {screen === "no-form" && (
           <Centered icon={<FileSearch className="h-8 w-8 text-muted-foreground" />} title="No form found">
-            Open a page with a sign-up or contact form, then click the shield again.
+            Open a page with a sign-up or contact form, then click the Data Firewall icon again.
           </Centered>
         )}
 
@@ -460,7 +480,20 @@ export function PopupApp() {
       </main>
 
       {screen === "ready" && (
-        <footer className="border-t bg-card/50 p-3">
+        <footer className="space-y-2.5 border-t bg-card/50 p-3">
+          {shield === "off" && (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                {shieldDenied ? "Access wasn't granted." : `Show the shield beside fields on ${domain}?`}
+              </p>
+              <button
+                onClick={turnOnShield}
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+              >
+                Turn on
+              </button>
+            </div>
+          )}
           <Button className="w-full" disabled={fillable.length === 0} onClick={handleFill}>
             {fillable.length === 0 ? "Nothing to fill" : `Fill ${fillable.length} field${fillable.length === 1 ? "" : "s"}`}
           </Button>

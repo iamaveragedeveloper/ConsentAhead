@@ -1,4 +1,5 @@
-// Trigger: the only script that runs on every page.
+// Trigger: runs only on sites the user turned the shield on for (registered per site by
+// access/siteShield.ts). There is no script on every page.
 //
 // It reads NOTHING from the page: no labels, values, links or text, and it sends no page data
 // anywhere. All it does is show a small shield beside the form field you click into.

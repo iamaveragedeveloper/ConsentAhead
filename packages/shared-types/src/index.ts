@@ -268,6 +268,7 @@ export type ExtensionMessageType =
   | "GET_DISCLOSURE_PREVIEW"
   | "CLEAR_SESSION"
   | "TRIGGER_SCAN"
+  | "FETCH_TEXT"
   | "OPEN_POPUP";
 
 export interface ExtensionMessage<T = unknown> {

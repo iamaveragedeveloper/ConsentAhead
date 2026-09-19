@@ -57,7 +57,7 @@ We may update these terms as the extension changes; the current version and its 
 
 ## 12. Governing law
 
-These terms are governed by the laws of [add your country or state].
+These terms are governed by the laws of India.
 
 ## 13. Contact
 

@@ -5,6 +5,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { clearScanCache } from "../../privacy/policyScanner";
+import { disableShield } from "../../access/siteShield";
 import { isSample, loadSampleData, removeSampleData } from "../lib";
 import type { DashData } from "../types";
 
@@ -16,8 +17,7 @@ export function DataPage({ data }: { data: DashData }) {
   const loadOrigins = useCallback(async () => {
     try {
       const all = await chrome.permissions.getAll();
-      // Only sites the user granted one by one. Broad patterns (http://*/*, file://) are the
-      // page-trigger's built-in match rules, not access anyone approved, so they aren't listed.
+      // Only sites the user allowed one by one. Broad patterns are not shown.
       // (Parsed with a pattern, not new URL(): Chrome percent-encodes "*" in hostnames.)
       const isSpecificSite = (o: string) => {
         const host = /^[a-z*]+:\/\/([^/]*)/.exec(o)?.[1] ?? "";
@@ -34,7 +34,7 @@ export function DataPage({ data }: { data: DashData }) {
   }, [loadOrigins]);
 
   const revoke = async (origin: string) => {
-    await chrome.permissions.remove({ origins: [origin] });
+    await disableShield(origin.replace(/\/\*$/, ""));
     await loadOrigins();
   };
 

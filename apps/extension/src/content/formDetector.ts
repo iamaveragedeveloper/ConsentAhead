@@ -347,6 +347,31 @@ if (!guard.__pdfwLoaded) {
       return true; // async response
     }
 
+    // The popup asks for a page on this same site (the privacy policy). Fetching it from here,
+    // as the page itself, needs no extra access. Other sites are refused.
+    if (message.type === "FETCH_TEXT") {
+      const url = String((message.payload as { url?: string } | undefined)?.url ?? "");
+      let sameSite = false;
+      try {
+        sameSite = new URL(url).origin === location.origin;
+      } catch {
+        /* not a URL */
+      }
+      if (!sameSite) {
+        sendResponse({ ok: false });
+        return false;
+      }
+      fetch(url, { credentials: "omit", redirect: "follow" })
+        .then(async (res) => ({
+          ok: res.ok,
+          contentType: res.headers.get("content-type") ?? "",
+          body: (await res.text()).slice(0, 1_500_000),
+        }))
+        .then(sendResponse)
+        .catch(() => sendResponse({ ok: false }));
+      return true; // async response
+    }
+
     return false;
   });
 

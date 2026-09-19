@@ -18,3 +18,8 @@ samconfig.toml
 *.log
 .DS_Store
 Thumbs.db
+
+# Deploy output
+site-dist/
+services/api/build/
+infra/.packaged.yaml

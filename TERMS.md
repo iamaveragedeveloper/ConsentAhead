@@ -1,4 +1,4 @@
-# Data Firewall — Terms of Use
+# Data Firewall Terms of Use
 
 _Effective 19 September 2026 · Version 1.1.0_
 
@@ -19,7 +19,11 @@ The privacy scan is generated automatically from the text of a site's policy. It
 - Use the extension lawfully and in line with the terms of the websites you visit.
 - Keep your device and browser secure. You are responsible for who can use them.
 
-## 4. Acceptable use
+## 4. Your accounts
+
+Data Firewall asks you to create a local account. More than one account can be created on a device, and each keeps its own vault. Accounts are stored only on your device and are not sent to us. Choose a password only you know and keep it safe. Because nothing is stored online, we cannot recover a forgotten password: the only way back in is to erase that account, which also erases its vault and everything else stored for it. You are responsible for activity under your account on your device.
+
+## 5. Acceptable use
 
 You agree not to use the extension to:
 
@@ -27,35 +31,35 @@ You agree not to use the extension to:
 - send spam, commit fraud, or break the law or a website's rules;
 - interfere with or attack a website or service, or work around its security.
 
-## 5. Third-party websites and content
+## 6. Third-party websites and content
 
 Privacy policies, terms and forms belong to the websites that publish them. The extension shows short quotations from them only to help you understand them. We do not control those sites and are not responsible for their content or practices.
 
-## 6. Your data
+## 7. Your data
 
 How your information is handled is described in the Privacy Policy, which forms part of these terms.
 
-## 7. Software licence
+## 8. Software licence
 
 The extension's source code is published under the MIT Licence, as stated in the project repository. These terms cover your use of the extension itself.
 
-## 8. No warranty
+## 9. No warranty
 
 The extension is provided “as is” and “as available”, without warranties of any kind, whether express or implied. We do not promise that it will be error-free, that it will fill every form correctly, or that its analysis of any policy is complete or accurate.
 
-## 9. Limitation of liability
+## 10. Limitation of liability
 
 To the fullest extent the law allows, the Data Firewall developers are not liable for any indirect, incidental or consequential loss, or for loss of data or profits, arising from your use of the extension. Nothing in these terms limits liability that cannot be limited by law.
 
-## 10. Changes and ending your use
+## 11. Changes and ending your use
 
 We may update these terms as the extension changes; the current version and its effective date are shown on this page. Continuing to use the extension after an update means you accept it. You can stop at any time by uninstalling the extension, which removes the data it stored.
 
-## 11. Governing law
+## 12. Governing law
 
 These terms are governed by the laws of [add your country or state].
 
-## 12. Contact
+## 13. Contact
 
 Questions about these terms can be sent to [add a contact email address].
 

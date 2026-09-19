@@ -1,4 +1,4 @@
-// Policy Discover API Handler — finds privacy/terms/deletion policy URLs for a given domain
+// Policy Discover API Handler: finds privacy/terms/deletion policy URLs for a given domain
 
 import { PolicyDiscoverRequestSchema } from "../validation/inputSchemas";
 import { discoverPolicyLinks } from "../policy/discoverer";

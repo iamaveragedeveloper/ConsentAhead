@@ -1,4 +1,4 @@
-// Policy text chunker — breaks long policy text into coherent sections for LLM context window
+// Policy text chunker: breaks long policy text into coherent sections for LLM context window
 // Preserves section headers and context overlap.
 
 export interface PolicyChunk {

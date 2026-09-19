@@ -1,7 +1,7 @@
-# ConsentAhead — Personal Data Firewall (Chrome Extension + AWS Serverless)
+# ConsentAhead: Personal Data Firewall (Chrome Extension + AWS Serverless)
 
 > **Privacy-first Chrome Extension (Manifest V3) powered by Amazon Bedrock & AWS Serverless.**  
-> Intercepts web forms before submission, analyzes privacy policies using AI, exposes hidden data practices, minimizes optional field disclosures, and tracks your global Data Footprint — all while keeping your raw personal data strictly on your local device.
+> Intercepts web forms before submission, analyzes privacy policies using AI, exposes hidden data practices, minimizes optional field disclosures, and tracks your global Data Footprint, all while keeping your raw personal data strictly on your local device.
 
 ---
 
@@ -88,7 +88,7 @@ ConsentAhead/
 │           ├── policy/     # Policy fetcher, extractor & chunker
 │           └── local-dev.ts# Local HTTP server for offline testing
 ├── infra/
-│   └── template.yaml       # AWS SAM IaC deployment template
+│   └── template.yaml       # CloudFormation/SAM template (API, cache table, website)
 ├── pnpm-workspace.yaml
 └── README.md
 ```
@@ -160,20 +160,23 @@ Or serve it locally using any static web server (`npx serve apps/demo-site`).
 
 ---
 
-## ☁️ AWS SAM Deployment (Production)
+## ☁️ AWS Deployment
 
-To deploy the backend to AWS using SAM:
+Needs Node and the AWS CLI (`aws configure` once, with an IAM user's keys). Region defaults to `us-east-1`.
 
 ```bash
-cd infra
-sam build
-sam deploy --guided
+pnpm deploy:aws      # build and deploy everything, then print your links
+pnpm destroy:aws     # delete it all again (stops all charges)
 ```
 
 This provisions:
-- API Gateway Endpoint (`/form/analyze`, `/policy/discover`, `/policy/analyze`, `/company/pathways`)
-- 5 AWS Lambda functions with Node.js 20.x
-- IAM Least-Privilege roles for Bedrock `InvokeModel`
+- **API Gateway** with `/health`, `/form/analyze`, `/policy/discover`, `/policy/analyze`, `/company/pathways`, rate limited
+- **Lambda** (Node.js 20) functions, each with least-privilege IAM (one Bedrock model, one table)
+- **Amazon Bedrock** to read privacy policies
+- **DynamoDB** cache of policy analyses, keyed by domain and policy hash, expiring after 30 days. Public data only.
+- **S3 + CloudFront** website with the Privacy Policy, Terms of Use and demo pages
+
+To point the extension at the API, build it with `VITE_API_BASE_URL=<ApiEndpoint>` (printed at the end of the deploy).
 
 ---
 
@@ -187,4 +190,4 @@ This provisions:
 
 ## 📜 License
 
-MIT License — Built for Privacy Innovation.
+MIT License. Built for Privacy Innovation.

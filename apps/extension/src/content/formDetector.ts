@@ -1,4 +1,4 @@
-// Content Script — Form Scanner
+// Content Script: Form Scanner
 // NOT loaded automatically. The popup injects this only after the user has allowed access
 // to the site. It scans on request (TRIGGER_SCAN) and fills fields on request (FILL_FIELDS).
 // NEVER collects user-entered values. NEVER submits forms.
@@ -35,7 +35,7 @@ function extractRawLabel(input: HTMLInputElement | HTMLSelectElement | HTMLTextA
   // 3. aria-label
   const ariaLabel = input.getAttribute("aria-label")?.trim();
   if (ariaLabel) return ariaLabel;
-  // 4. aria-labelledby — a space-separated list of ids (Google Forms uses e.g. "i1 i4");
+  // 4. aria-labelledby: a space-separated list of ids (Google Forms uses e.g. "i1 i4");
   //    the first one that has text is the question title
   const labelledBy = input.getAttribute("aria-labelledby");
   if (labelledBy) {
@@ -121,7 +121,7 @@ function extractFields(): FormField[] {
     const hasIdentifier = label || placeholder || input.name || input.id || inputEl.autocomplete;
     if (!hasIdentifier) return;
 
-    // Stamp the element so it can be found again reliably when filling — many sites
+    // Stamp the element so it can be found again reliably when filling, since many sites
     // (e.g. Google Forms) give inputs no id or name.
     const stamp = `pdfw-${index}`;
     input.setAttribute("data-pdfw-id", stamp);

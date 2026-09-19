@@ -1,4 +1,4 @@
-// Policy text extractor — converts HTML to structured, clean text
+// Policy text extractor: converts HTML to structured, clean text
 // Preserves headings, sections, and structural markers for AI context.
 
 export interface ExtractedPolicy {

@@ -243,6 +243,8 @@ export interface PolicyAnalyzeResponse {
   status: "success" | "no_relevant_evidence_found" | "policy_unavailable" | "error";
   findings: PrivacyFinding[];
   policyUrl?: string;
+  /** True when the result came from the shared cache instead of a fresh analysis */
+  cached?: boolean;
 }
 
 export interface CompanyPathwaysRequest {

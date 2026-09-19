@@ -1,7 +1,8 @@
-// Policy Analyze API Handler — fetches privacy policy and uses Bedrock to extract evidence-backed findings
+// Policy Analyze API Handler: fetches privacy policy and uses Bedrock to extract evidence-backed findings
 
 import { PolicyAnalyzeRequestSchema } from "../validation/inputSchemas";
-import { safeFetch } from "../policy/fetcher";
+import { safeFetch, hashContent } from "../policy/fetcher";
+import { getCachedAnalysis, putCachedAnalysis } from "../cache/policyCache";
 import { extractTextFromHtml } from "../policy/extractor";
 import { chunkPolicyText } from "../policy/chunker";
 import { invokeBedrock } from "../bedrock/client";
@@ -17,19 +18,33 @@ export async function handler(event: { body?: string }) {
     const body = event.body ? JSON.parse(event.body) : {};
     const parsed = PolicyAnalyzeRequestSchema.parse(body);
 
+    // Only text this server fetched itself is cached, so a client can never plant results for a domain
+    let fetchedByServer = false;
     let rawPolicyHtml = parsed.policyText || "";
     if (!rawPolicyHtml && parsed.policyUrl) {
       try {
         rawPolicyHtml = (await safeFetch(parsed.policyUrl)) || "";
+        fetchedByServer = rawPolicyHtml !== "";
       } catch (fetchErr) {
         console.warn(`Could not fetch policy from ${parsed.policyUrl}:`, fetchErr);
       }
     }
 
     let findings: PrivacyFinding[] = [];
+    let cached = false;
+    let contentHash = "";
 
     if (rawPolicyHtml) {
       const extracted = extractTextFromHtml(rawPolicyHtml);
+      contentHash = hashContent(extracted.text);
+
+      // Same domain and same policy text as before: reuse the stored result, no model call
+      if (fetchedByServer) {
+        const hit = await getCachedAnalysis(parsed.domain, contentHash);
+        if (hit) {
+          return respond({ status: hit.findings.length > 0 ? "success" : "no_relevant_evidence_found", findings: hit.findings, policyUrl: parsed.policyUrl, cached: true });
+        }
+      }
       const chunks = chunkPolicyText(extracted.text);
       const mainContent = chunks.slice(0, 3).map((c) => c.text).join("\n\n");
 
@@ -46,6 +61,7 @@ export async function handler(event: { body?: string }) {
         );
         const rawResult = parseBedrockJson<{ findings: unknown[] }>(bedrockResponse);
         findings = validatePrivacyFindings(rawResult.findings, parsed.policyUrl);
+        if (fetchedByServer) await putCachedAnalysis(parsed.domain, contentHash, { findings, policyUrl: parsed.policyUrl });
       } catch (bedrockErr) {
         console.warn("Bedrock policy analysis error, falling back to default heuristic findings:", bedrockErr);
         findings = generateFallbackFindings(parsed.domain, extracted.text, parsed.policyUrl);
@@ -54,20 +70,7 @@ export async function handler(event: { body?: string }) {
       findings = generateFallbackFindings(parsed.domain, "", parsed.policyUrl);
     }
 
-    const responseBody: PolicyAnalyzeResponse = {
-      status: findings.length > 0 ? "success" : "no_relevant_evidence_found",
-      findings,
-      policyUrl: parsed.policyUrl,
-    };
-
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify(responseBody),
-    };
+    return respond({ status: findings.length > 0 ? "success" : "no_relevant_evidence_found", findings, policyUrl: parsed.policyUrl, cached });
   } catch (err) {
     return {
       statusCode: 400,
@@ -78,6 +81,17 @@ export async function handler(event: { body?: string }) {
       body: JSON.stringify({ error: (err as Error).message }),
     };
   }
+}
+
+function respond(body: PolicyAnalyzeResponse) {
+  return {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    },
+    body: JSON.stringify(body),
+  };
 }
 
 function generateFallbackFindings(domain: string, text: string, policyUrl: string = "#"): PrivacyFinding[] {

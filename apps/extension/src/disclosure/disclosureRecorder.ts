@@ -1,4 +1,4 @@
-// Disclosure Recorder — records what the user chose to share
+// Disclosure Recorder: records what the user chose to share
 // Stores categories only, NEVER raw personal values
 
 import { v4 as uuidv4 } from "./uuid";
@@ -32,7 +32,7 @@ export async function recordDisclosure(params: RecordDisclosureParams): Promise<
     domain,
     pageUrl,
     timestamp: new Date().toISOString(),
-    // Store categories and sensitivity ONLY — no actual values
+    // Store categories and sensitivity ONLY, no actual values
     fields: selectedFields.map((f) => ({
       fieldId: f.fieldId,
       category: f.category,

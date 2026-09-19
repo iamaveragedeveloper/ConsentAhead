@@ -1,4 +1,4 @@
-// Output Validator — validates Bedrock LLM response JSON outputs against strict schemas
+// Output Validator: validates Bedrock LLM response JSON outputs against strict schemas
 // Prevents malformed or hallucinated responses from reaching the client.
 
 import type { PrivacyFinding, DataControlPathway, Severity, FindingType, PathwayType } from "@consent-ahead/shared-types";

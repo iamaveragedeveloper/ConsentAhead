@@ -138,7 +138,7 @@ export function DataPage({ data }: { data: DashData }) {
             <Trash2 className="h-4 w-4" /> Delete everything
           </CardTitle>
           <CardDescription>
-            Permanently removes your vault, all recorded disclosures and company history from this browser.
+            Permanently removes this account's vault, recorded disclosures and company history from this browser. Other accounts on this device are not affected.
           </CardDescription>
         </CardHeader>
         <CardContent>

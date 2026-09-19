@@ -138,7 +138,7 @@ function Row({ event: e, open, onToggle, onDelete }: { event: DisclosureEvent; o
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground">Only categories are stored — never the values you filled in.</p>
+          <p className="text-xs text-muted-foreground">Only categories are stored, never the values you filled in.</p>
           <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5" /> Delete this record
           </Button>

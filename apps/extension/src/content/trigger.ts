@@ -1,8 +1,8 @@
-// Trigger — the only script that runs on every page.
+// Trigger: the only script that runs on every page.
 //
 // It reads NOTHING from the page: no labels, values, links or text, and it sends no page data
 // anywhere. All it does is show a small shield beside the form field you click into.
-// Clicking the shield asks the extension to open its popup — where you are asked whether
+// Clicking the shield asks the extension to open its popup, where you are asked whether
 // to allow access to this site before anything is scanned.
 
 // Scoped in a function: every content script shares one JavaScript world per page,
@@ -60,7 +60,7 @@ if (!guard.__pdfwTrigger) {
         }
       </style>
       <div class="hint" hidden>Click the Data Firewall icon in your toolbar</div>
-      <button type="button" title="Data Firewall — click to review this form" aria-label="Open Data Firewall">
+      <button type="button" title="Data Firewall: click to review this form" aria-label="Open Data Firewall">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z"/>
           <path d="M9 12l2 2 4-4"/>
@@ -86,7 +86,7 @@ if (!guard.__pdfwTrigger) {
           .then((res) => res?.opened === false && showHint())
           .catch(showHint);
       } catch {
-        showHint(); // extension was reloaded — the page needs a refresh
+        showHint(); // extension was reloaded, so the page needs a refresh
       }
     });
 

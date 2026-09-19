@@ -1,4 +1,4 @@
-// Bedrock Runtime client — wraps the Converse API
+// Bedrock Runtime client: wraps the Converse API
 // Model ID is always configured via environment variable.
 // NEVER hard-code model IDs in business logic.
 

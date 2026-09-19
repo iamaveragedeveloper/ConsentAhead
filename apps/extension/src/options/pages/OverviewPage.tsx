@@ -139,7 +139,7 @@ export function OverviewPage({ data, go }: { data: DashData; go: (page: string) 
             <Donut data={s.byMode} centerValue={`${s.minimizedShare}%`} centerLabel="minimized" />
             <p className="mt-4 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
               {s.minimizedShare >= 60
-                ? "Nice — most of your forms shared only what was required."
+                ? "Nice work. Most of your forms shared only what was required."
                 : "Tip: switch to “Required” in the popup to share only what a site strictly needs."}
             </p>
           </CardContent>
@@ -199,8 +199,8 @@ function Welcome({ data, go }: { data: DashData; go: (page: string) => void }) {
             </Badge>
             <h2 className="text-2xl font-semibold tracking-tight">Your data footprint will appear here</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Each time you fill a form with Data Firewall, it is recorded here — which company, what kind of data and how
-              sensitive it was — so you always know who has what. Only categories are stored, never your actual values.
+              Each time you fill a form with Data Firewall, it is recorded here: which company, what kind of data and how
+              sensitive it was, so you always know who has what. Only categories are stored, never your actual values.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => go("vault")}>

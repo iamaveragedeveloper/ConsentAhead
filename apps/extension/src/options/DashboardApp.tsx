@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Database, History, LayoutDashboard, Lock, ShieldCheck } from "lucide-react";
+import { Building2, Database, History, LayoutDashboard, Lock, LogOut, ShieldCheck } from "lucide-react";
 import { getAllCompanies, getAllDisclosureEvents, getVaultState } from "../vault/vaultStore";
 import { cn } from "../lib/utils";
+import { getSession, signOut, type Account } from "../auth/authStore";
 import { summarize } from "./lib";
 import type { DashData } from "./types";
 import { ActivityPage } from "./pages/ActivityPage";
@@ -16,7 +17,7 @@ const PAGES = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, title: "Overview", description: "Your data footprint at a glance" },
   { id: "vault", label: "Vault", icon: Lock, title: "Vault", description: "The details Data Firewall can fill for you" },
   { id: "activity", label: "Activity", icon: History, title: "Activity", description: "Every form you've filled, newest first" },
-  { id: "companies", label: "Companies", icon: Building2, title: "Companies", description: "Who has your data — and how to take it back" },
+  { id: "companies", label: "Companies", icon: Building2, title: "Companies", description: "Who has your data, and how to take it back" },
   { id: "data", label: "Data & access", icon: Database, title: "Data & access", description: "Control site access, export or delete your data" },
 ] as const;
 
@@ -41,6 +42,8 @@ export function DashboardApp() {
   const [events, setEvents] = useState<DashData["events"]>([]);
   const [companies, setCompanies] = useState<DashData["companies"]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const reload = useCallback(async () => {
     const [v, evts, comps] = await Promise.all([getVaultState(), getAllDisclosureEvents(), getAllCompanies()]);
@@ -54,6 +57,18 @@ export function DashboardApp() {
     void reload();
   }, [reload]);
 
+  // Everything except the legal pages needs a signed-in account
+  useEffect(() => {
+    (async () => {
+      const session = await getSession();
+      setAccount(session);
+      setAuthChecked(true);
+      if (!session && page !== "privacy" && page !== "terms") {
+        window.location.replace(chrome.runtime.getURL("auth.html"));
+      }
+    })();
+  }, [page]);
+
   useEffect(() => {
     const onHash = () => setPage(pageFromHash());
     window.addEventListener("hashchange", onHash);
@@ -65,12 +80,42 @@ export function DashboardApp() {
   };
 
   const summary = useMemo(() => summarize(events), [events]);
-  const data: DashData = { vault, events, companies, summary, reload };
+  const data: DashData = { vault, events, companies, summary, account, reload };
   const legalId = page === "privacy" || page === "terms" ? page : null;
   const current = legalId
     ? { title: LEGAL_DOCS[legalId].title, description: LEGAL_DESCRIPTIONS[legalId] }
     : (PAGES.find((p) => p.id === page) ?? PAGES[0]);
   const version = chrome.runtime.getManifest().version;
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.replace(chrome.runtime.getURL("auth.html"));
+  };
+
+  if (!authChecked) return null;
+
+  // Signed out: only the legal pages are viewable, in a simple layout with no navigation
+  if (!account) {
+    if (!legalId) return null; // redirecting to sign-in
+    return (
+      <div className="mx-auto max-w-4xl px-6 py-10">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <p className="text-sm font-semibold">Data Firewall</p>
+          </div>
+          <a href={chrome.runtime.getURL("auth.html")} className="text-sm text-primary hover:underline">
+            Sign in
+          </a>
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">{current.title}</h1>
+        <p className="mb-6 mt-1 text-sm text-muted-foreground">{current.description}</p>
+        <LegalPage id={legalId} go={go} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen md:pl-64">
@@ -109,6 +154,19 @@ export function DashboardApp() {
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             Everything here is stored only on this device. Nothing is ever sent to a server.
           </p>
+        </div>
+
+        <div className="mx-3 mb-3 flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold uppercase text-primary">
+            {account.name.slice(0, 1) || "?"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium">{account.name}</p>
+            <p className="truncate text-[11px] text-muted-foreground">{account.email}</p>
+          </div>
+          <button onClick={handleSignOut} title="Sign out" className="text-muted-foreground hover:text-foreground">
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="flex items-center justify-between px-5 pb-4 text-[11px] text-muted-foreground">

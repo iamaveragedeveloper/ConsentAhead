@@ -1,16 +1,19 @@
-// Vault Store — CRUD operations for personal vault data
+// Vault Store: CRUD operations for personal vault data
 // Reads/writes encrypted data via vaultDB.
 // Simple symmetric encryption using a user-set PIN via PBKDF2 + AES-GCM.
 
 import { dbGet, dbPut, dbGetAll, dbDelete, dbClear, STORES } from "./vaultDB";
+import { keyNameFor, requireActiveAccountId } from "../auth/accountStorage";
 import type { VaultProfile, DisclosureEvent, CompanyProfile } from "@consent-ahead/shared-types";
 
 // ─── Simple key storage (MVP: uses localStorage for key, production would use PBKDF2) ──
 
-const ENC_KEY_STORAGE = "pdfw_enc_key";
+// Each account has its own key, so accounts on the same device cannot read each other's vault
+const encKeyName = async () => keyNameFor(await requireActiveAccountId());
 
 async function getOrCreateKey(): Promise<CryptoKey> {
-  const stored = localStorage.getItem(ENC_KEY_STORAGE);
+  const keyName = await encKeyName();
+  const stored = localStorage.getItem(keyName);
 
   if (stored) {
     const raw = Uint8Array.from(atob(stored), (c) => c.charCodeAt(0));
@@ -24,7 +27,7 @@ async function getOrCreateKey(): Promise<CryptoKey> {
   ]);
   const exported = await crypto.subtle.exportKey("raw", key);
   const b64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-  localStorage.setItem(ENC_KEY_STORAGE, b64);
+  localStorage.setItem(keyName, b64);
   return key;
 }
 
@@ -163,5 +166,5 @@ export async function clearAllVaultData(): Promise<void> {
     dbClear(STORES.COMPANIES),
     dbClear(STORES.SETTINGS),
   ]);
-  localStorage.removeItem(ENC_KEY_STORAGE);
+  localStorage.removeItem(await encKeyName());
 }

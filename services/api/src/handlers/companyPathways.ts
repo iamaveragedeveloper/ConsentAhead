@@ -1,4 +1,4 @@
-// Company Pathways API Handler — finds data control pathways (deletion, opt-out, access)
+// Company Pathways API Handler: finds data control pathways (deletion, opt-out, access)
 
 import { CompanyPathwaysRequestSchema } from "../validation/inputSchemas";
 import { safeFetch } from "../policy/fetcher";

@@ -1,4 +1,4 @@
-// Policy Discovery — finds privacy/terms/deletion links on a website
+// Policy Discovery: finds privacy/terms/deletion links on a website
 // Fetches the page and extracts privacy-related links.
 
 import { safeFetch } from "./fetcher";

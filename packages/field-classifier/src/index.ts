@@ -131,7 +131,7 @@ export function classifyField(
     }
   }
 
-  // 4. Password fields — do NOT classify or autofill
+  // 4. Password fields: do NOT classify or autofill
   if (field.type === "password") {
     return {
       id: field.id,
@@ -143,7 +143,7 @@ export function classifyField(
     };
   }
 
-  // 5. Checkbox / radio — likely consent
+  // 5. Checkbox / radio: likely consent
   if (field.type === "checkbox" || field.type === "radio") {
     return {
       id: field.id,
@@ -155,14 +155,14 @@ export function classifyField(
     };
   }
 
-  // 6. Unknown — needs AI fallback
+  // 6. Unknown: needs AI fallback
   return {
     id: field.id,
     category: "unknown",
     sensitivity: "unknown",
     requirement: field.required ? "required" : "unknown",
     confidence: 0.30,
-    reason: "Could not classify deterministically — AI analysis needed",
+    reason: "Could not classify deterministically, AI analysis needed",
   };
 }
 

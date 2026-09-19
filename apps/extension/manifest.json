@@ -3,7 +3,7 @@
   "name": "Personal Data Firewall",
   "short_name": "DataFirewall",
   "version": "1.1.0",
-  "description": "Privacy-first browser extension. See what websites ask for your data — and what their own policies say they'll do with it.",
+  "description": "Privacy-first browser extension. See what websites ask for your data, and what their own policies say they'll do with it.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",

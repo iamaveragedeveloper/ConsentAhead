@@ -1,4 +1,4 @@
-# Data Firewall — Privacy Policy
+# Data Firewall Privacy Policy
 
 _Effective 19 September 2026 · Version 1.1.0_
 
@@ -7,7 +7,7 @@ Data Firewall is a browser extension that shows what a website asks for, reads w
 ## 1. In short
 
 - Your details stay on your device, encrypted. We never receive them.
-- No accounts, no analytics, no tracking, no advertising, and we never sell data.
+- No online accounts, no analytics, no tracking, no advertising, and we never sell data. Accounts are local, exist only on your device, and each one has its own separate vault.
 - Nothing is scanned on a site until you open the extension there (from the shield beside a field, or the toolbar icon) and allow access to that site.
 - You can view, export or delete everything the extension stores, at any time.
 
@@ -15,6 +15,7 @@ Data Firewall is a browser extension that shows what a website asks for, reads w
 
 The extension keeps the following in your browser's local storage. None of it leaves your device.
 
+- Your local accounts: for each account on this device, the name and email it was created with, and a salted, one-way hash of its password (never the password itself). They are used only to unlock the extension on this device and are not sent anywhere. Each account has its own separate vault, activity and company list.
 - Your vault: the details you choose to enter (name, email, phone, date of birth, job title, company and address). It is stored encrypted with AES-GCM. The encryption key is kept in the extension's own storage on the same device.
 - Your activity: for each form you fill, the site's domain, the time, the categories of data shared (for example “Contact”), how sensitive each was, and whether you filled required fields only. It never records the values you filled in.
 - Your company list: sites you have used the extension on, their policy links, and any deletion or data-request links you add yourself.
@@ -35,7 +36,7 @@ If a page has no policy link, the extension may try a few common addresses on th
 
 ## 5. What we collect and share
 
-Nothing. The extension has no accounts, no analytics or telemetry, no advertising and no third-party trackers. The developers do not receive your vault, your activity or your browsing information, and we do not sell or share it.
+Nothing. The extension has no online accounts, no analytics or telemetry, no advertising and no third-party trackers. Your sign-in never leaves your device. The developers do not receive your vault, your activity or your browsing information, and we do not sell or share it.
 
 ## 6. Optional cloud analysis
 
@@ -54,11 +55,12 @@ The project includes an optional cloud service (built on AWS) for AI-assisted po
 - Delete individual records, or forget a company, in Activity and Companies.
 - Remove access for any site in Data & access, or from the popup.
 - Export your activity as a JSON file. The export never includes your vault.
+- Sign out at any time. If you forget a password there is no recovery, because nothing is stored online, so you can erase that account and everything stored with it from the sign-in page and start over. Other accounts on the device are not affected.
 - Delete all data in one step. Uninstalling the extension also removes everything it stored.
 
 ## 9. Security
 
-Your vault is encrypted, and the extension never sends it anywhere. The encryption key is kept on the same device, so the vault protects your details from casual access rather than from someone who can already use your unlocked browser profile. Do not store details in the vault on a shared or untrusted computer, and keep your device and browser account secure.
+Your vault is encrypted, and the extension never sends it anywhere. The encryption key is kept on the same device, so the vault protects your details from casual access rather than from someone who can already use your unlocked browser profile. Signing in unlocks the extension's screens and does not by itself encrypt the vault, so it is not a substitute for keeping your device secure. Accounts keep people's data apart in the extension's screens; they do not stop someone who can use your browser profile from reading what is stored. Do not store details in the vault on a shared or untrusted computer, and keep your device and browser account secure.
 
 ## 10. Children
 

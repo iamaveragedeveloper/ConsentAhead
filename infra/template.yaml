@@ -1,6 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: ConsentAhead / Personal Data Firewall Backend Infrastructure
+Description: Data Firewall backend. Public policy analysis and cache, plus a static site. No personal data is stored.
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: amazon.nova-lite-v1:0
+    Description: Bedrock model used to read privacy policies
+  CacheTtlDays:
+    Type: Number
+    Default: 30
+    Description: How long a cached policy analysis is kept
 
 Globals:
   Function:
@@ -11,24 +21,54 @@ Globals:
       - x86_64
     Environment:
       Variables:
-        BEDROCK_REGION: us-east-1
-        BEDROCK_MODEL_ID: amazon.nova-lite-v1:0
+        BEDROCK_REGION: !Ref AWS::Region
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+        POLICY_CACHE_TABLE: !Ref PolicyCacheTable
+        POLICY_CACHE_TTL_DAYS: !Ref CacheTtlDays
 
 Resources:
+  # Shared memory of what each company's policy says. Public data only.
+  # Key: domain + a hash of the policy text, so an edited policy is analysed again.
+  PolicyCacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: domain
+          AttributeType: S
+        - AttributeName: contentHash
+          AttributeType: S
+      KeySchema:
+        - AttributeName: domain
+          KeyType: HASH
+        - AttributeName: contentHash
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
   ConsentAheadApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
+      # Rate limit so a burst of requests cannot run up a model bill
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          ThrottlingRateLimit: 10
+          ThrottlingBurstLimit: 20
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization'"
+        AllowHeaders: "'Content-Type'"
         AllowOrigin: "'*'"
 
   HealthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../services/api/
-      Handler: dist/handlers/health.handler
+      CodeUri: ../services/api/build/
+      Handler: handlers/health.handler
       Events:
         HealthApi:
           Type: Api
@@ -40,14 +80,13 @@ Resources:
   FormAnalyzeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../services/api/
-      Handler: dist/handlers/formAnalyze.handler
+      CodeUri: ../services/api/build/
+      Handler: handlers/formAnalyze.handler
       Policies:
         - Statement:
             - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource: "*"
+              Action: bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}"
       Events:
         FormAnalyzeApi:
           Type: Api
@@ -59,8 +98,8 @@ Resources:
   PolicyDiscoverFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../services/api/
-      Handler: dist/handlers/policyDiscover.handler
+      CodeUri: ../services/api/build/
+      Handler: handlers/policyDiscover.handler
       Events:
         PolicyDiscoverApi:
           Type: Api
@@ -72,14 +111,16 @@ Resources:
   PolicyAnalyzeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../services/api/
-      Handler: dist/handlers/policyAnalyze.handler
+      CodeUri: ../services/api/build/
+      Handler: handlers/policyAnalyze.handler
       Policies:
         - Statement:
             - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource: "*"
+              Action: bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}"
+        # Read and write the one cache table, nothing else
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PolicyCacheTable
       Events:
         PolicyAnalyzeApi:
           Type: Api
@@ -91,14 +132,13 @@ Resources:
   CompanyPathwaysFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../services/api/
-      Handler: dist/handlers/companyPathways.handler
+      CodeUri: ../services/api/build/
+      Handler: handlers/companyPathways.handler
       Policies:
         - Statement:
             - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource: "*"
+              Action: bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}"
       Events:
         CompanyPathwaysApi:
           Type: Api
@@ -107,7 +147,76 @@ Resources:
             Method: post
             RestApiId: !Ref ConsentAheadApi
 
+  # ── Static site: privacy policy, terms, and the demo pages ──
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  SiteAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-site"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  SiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          # Managed policies: CachingOptimized and SecurityHeadersPolicy
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${SiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}"
+
 Outputs:
   ApiEndpoint:
-    Description: API Gateway endpoint URL for ConsentAhead Service
-    Value: !Sub "https://${ConsentAheadApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Description: API URL. Set this as VITE_API_BASE_URL when building the extension (no trailing slash).
+    Value: !Sub "https://${ConsentAheadApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  SiteUrl:
+    Description: Public website (privacy policy, terms, demo)
+    Value: !Sub "https://${SiteDistribution.DomainName}"
+  SiteBucketName:
+    Value: !Ref SiteBucket
+  SiteDistributionId:
+    Value: !Ref SiteDistribution
+  CacheTableName:
+    Value: !Ref PolicyCacheTable

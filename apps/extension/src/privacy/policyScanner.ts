@@ -1,4 +1,4 @@
-// Privacy Scan — reads a site's privacy policy and terms and reports, in plain language,
+// Privacy Scan: reads a site's privacy policy and terms and reports, in plain language,
 // how your details will be used. Runs entirely on this device: the documents are fetched
 // straight from the site and analysed locally. Nothing about you is sent anywhere.
 
@@ -234,7 +234,7 @@ export function analyzePolicyText(text: string, sourceUrl: string, source: DocKi
     }
   }
 
-  // A site that says "we don't sell" and also "we may sell" — trust the warning
+  // A site that says "we don't sell" and also "we may sell": trust the warning
   if (found.has("sell")) found.delete("no-sell");
   // Sharing with advertisers already covers the general third-party finding
   if (found.has("share-ads")) found.delete("share-third");

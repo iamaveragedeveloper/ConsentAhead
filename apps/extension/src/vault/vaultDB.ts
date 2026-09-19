@@ -1,8 +1,9 @@
-// Vault Database — IndexedDB wrapper
+// Vault Database: IndexedDB wrapper
 // Stores all personal data locally in the browser.
 // Personal data NEVER leaves the device to the backend.
 
-const DB_NAME = "PDFW_LOCAL";
+import { dbNameFor, requireActiveAccountId } from "../auth/accountStorage";
+
 const DB_VERSION = 1;
 
 export const STORES = {
@@ -12,13 +13,17 @@ export const STORES = {
   SETTINGS: "settings",
 } as const;
 
-let db: IDBDatabase | null = null;
+// One open connection per account database
+const connections = new Map<string, IDBDatabase>();
 
 export async function openDB(): Promise<IDBDatabase> {
-  if (db) return db;
+  // Each account has its own database, so this always opens the signed-in account's data
+  const accountId = await requireActiveAccountId();
+  const cached = connections.get(accountId);
+  if (cached) return cached;
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(dbNameFor(accountId), DB_VERSION);
 
     request.onupgradeneeded = (event) => {
       const database = (event.target as IDBOpenDBRequest).result;
@@ -43,8 +48,15 @@ export async function openDB(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => {
-      db = request.result;
-      resolve(request.result);
+      const database = request.result;
+      // If the database is being deleted (an account was erased) or upgraded, let go of it, so the
+      // browser is not left waiting on this page's connection
+      database.onversionchange = () => {
+        database.close();
+        connections.delete(accountId);
+      };
+      connections.set(accountId, database);
+      resolve(database);
     };
 
     request.onerror = () => reject(request.error);

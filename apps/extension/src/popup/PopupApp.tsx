@@ -15,6 +15,7 @@ import type { DisclosureField, DisclosurePreview, VaultProfile } from "@consent-
 import { getCategoryLabel } from "@consent-ahead/field-classifier";
 import { getVaultState, resolveVaultValue, type VaultState } from "../vault/vaultStore";
 import { recordDisclosure } from "../disclosure/disclosureRecorder";
+import { getLastAccount, getSession, signOut, type Account } from "../auth/authStore";
 import {
   guessDocument,
   scanDocument,
@@ -28,7 +29,7 @@ import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { cn } from "../lib/utils";
 
-type Screen = "loading" | "unknown" | "unsupported" | "no-access" | "scanning" | "no-form" | "ready" | "done";
+type Screen = "loading" | "signin" | "unknown" | "unsupported" | "no-access" | "scanning" | "no-form" | "ready" | "done";
 type FillMode = "minimum" | "all";
 type StepState = "idle" | "active" | "done" | "missing";
 type StepKey = "form" | "privacy" | "terms" | "analyze";
@@ -70,6 +71,11 @@ const PACE = {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const openDashboard = () => chrome.runtime.openOptionsPage();
+// Opens the sign-in page in a tab, then closes the popup
+const openSignIn = () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("auth.html") });
+  window.close();
+};
 const openLegal = (page: "privacy" | "terms") => chrome.tabs.create({ url: chrome.runtime.getURL(`options.html#/${page}`) });
 
 // Colour guidance for data sensitivity
@@ -100,6 +106,8 @@ export function PopupApp() {
   const [vault, setVault] = useState<{ state: VaultState; profile: VaultProfile | null } | null>(null);
   const [result, setResult] = useState<FillResult | null>(null);
   const [scan, setScan] = useState<ScanState>(INITIAL_SCAN);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [knownAccount, setKnownAccount] = useState<Account | null>(null);
   const startedAt = useRef(Date.now());
   const barValue = useRef(0); // how far the progress bar has actually got (0-100)
 
@@ -123,9 +131,14 @@ export function PopupApp() {
   }, []);
 
   useEffect(() => {
-    getVaultState().then(setVault);
-
     (async () => {
+      // Everything below needs a signed-in account
+      if (!(await getSession())) {
+        setKnownAccount(await getLastAccount());
+        return setScreen("signin");
+      }
+      getVaultState().then(setVault);
+
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab?.id) return setScreen("unsupported");
 
@@ -165,8 +178,15 @@ export function PopupApp() {
     else setDenied(true);
   };
 
-  const revokeAccess = async () => {
-    await chrome.permissions.remove({ origins: [`${origin}/*`] });
+  useEffect(() => {
+    if (!confirmLogout) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setConfirmLogout(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmLogout]);
+
+  const handleSignOut = async () => {
+    await signOut();
     window.close();
   };
 
@@ -176,7 +196,7 @@ export function PopupApp() {
     const patch = (partial: Partial<ScanState>, steps?: Partial<ScanState["steps"]>) =>
       setScan((s) => ({ ...s, ...partial, steps: { ...s.steps, ...steps } }));
 
-    // Step 1: the form has been read — keep that stage on screen long enough to see it
+    // Step 1: the form has been read; keep that stage on screen long enough to see it
     await sleep(Math.max(0, PACE.form - (Date.now() - startedAt.current)));
 
     // Step 2: policy and terms are read in parallel
@@ -283,18 +303,25 @@ export function PopupApp() {
   const showScanLayout = screen === "scanning" || screen === "ready";
 
   return (
-    <div className="flex max-h-[600px] min-h-[300px] w-[380px] flex-col bg-background">
+    <div className={cn("flex max-h-[600px] w-[380px] flex-col bg-background", screen !== "signin" && "min-h-[300px]")}>
       <header className="flex items-center gap-2.5 px-4 pb-3 pt-4">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
           <ShieldCheck className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-sm font-semibold leading-none">Data Firewall</h1>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{domain || "—"}</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{domain || (screen === "signin" ? "Signed out" : "\u00A0")}</p>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={openDashboard} title="Dashboard">
-          <Settings className="h-4 w-4" />
-        </Button>
+        {screen !== "signin" && screen !== "loading" && (
+          <>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={openDashboard} title="Dashboard">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground" onClick={() => setConfirmLogout(true)}>
+              Logout
+            </Button>
+          </>
+        )}
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pb-4">
@@ -304,6 +331,8 @@ export function PopupApp() {
             Loading…
           </div>
         )}
+
+        {screen === "signin" && <SignedOut account={knownAccount} onContinue={openSignIn} />}
 
         {screen === "unknown" && (
           <Centered icon={<ShieldCheck className="h-8 w-8 text-primary" />} title="Ready when you are">
@@ -431,14 +460,38 @@ export function PopupApp() {
       </main>
 
       {screen === "ready" && (
-        <footer className="space-y-2 border-t bg-card/50 p-3">
+        <footer className="border-t bg-card/50 p-3">
           <Button className="w-full" disabled={fillable.length === 0} onClick={handleFill}>
             {fillable.length === 0 ? "Nothing to fill" : `Fill ${fillable.length} field${fillable.length === 1 ? "" : "s"}`}
           </Button>
-          <button onClick={revokeAccess} className="block w-full text-center text-[11px] text-muted-foreground hover:text-foreground">
-            Remove access to {domain}
-          </button>
         </footer>
+      )}
+
+      {confirmLogout && (
+        <div
+          className="fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="logout-title"
+          onClick={() => setConfirmLogout(false)}
+        >
+          <div className="w-full max-w-[300px] rounded-xl border bg-card p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 id="logout-title" className="text-sm font-semibold">
+              Log out of Data Firewall?
+            </h2>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              You'll need to sign in again to use it. Your saved details stay on this device.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button variant="secondary" className="flex-1" autoFocus onClick={() => setConfirmLogout(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" className="flex-1" onClick={handleSignOut}>
+                Log out
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -747,5 +800,30 @@ function FieldRow({
         aria-label={`Fill ${field.label}`}
       />
     </li>
+  );
+}
+
+// ── Signed out ───────────────────────────────────────────────────────────────
+
+function SignedOut({ account, onContinue }: { account: Account | null; onContinue: () => void }) {
+  const first = account?.name.split(" ").filter(Boolean)[0];
+  return (
+    <div className="space-y-5 pt-2">
+      <div className="space-y-2">
+        <h2 className="text-xl font-semibold tracking-tight">
+          {account ? `Welcome back${first ? `, ${first}` : ""}` : "Get started"}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {account ? "Sign in to continue." : "Create an account to scan forms and fill them safely."}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <Button className="h-10 w-full" onClick={onContinue}>
+          {account ? "Sign in" : "Create account"}
+        </Button>
+        <p className="text-xs text-muted-foreground">Your details stay on this device.</p>
+      </div>
+    </div>
   );
 }

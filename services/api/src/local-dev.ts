@@ -1,4 +1,4 @@
-// Local Dev Server — runs all API handlers via http for local testing
+// Local Dev Server: runs all API handlers via http for local testing
 import http from "http";
 import { handler as healthHandler } from "./handlers/health";
 import { handler as formAnalyzeHandler } from "./handlers/formAnalyze";

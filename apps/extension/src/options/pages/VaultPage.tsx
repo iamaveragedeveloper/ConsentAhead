@@ -31,9 +31,19 @@ const read = (p: VaultProfile, key: string): string => {
 };
 
 export function VaultPage({ data }: { data: DashData }) {
-  const initial = data.vault?.profile ?? {};
-  const [form, setForm] = useState<VaultProfile>(initial);
-  const [baseline, setBaseline] = useState(JSON.stringify(initial));
+  const saved = data.vault?.profile ?? {};
+  // First visit after sign-up: suggest the name and email the account was made with (not saved
+  // until you press Save, so it shows as an unsaved change)
+  const suggestion: VaultProfile =
+    data.vault?.profile || !data.account
+      ? {}
+      : {
+          firstName: data.account.name.split(" ").filter(Boolean)[0],
+          lastName: data.account.name.split(" ").filter(Boolean).slice(1).join(" ") || undefined,
+          email: data.account.email,
+        };
+  const [form, setForm] = useState<VaultProfile>({ ...saved, ...suggestion });
+  const [baseline, setBaseline] = useState(JSON.stringify(saved));
   const [justSaved, setJustSaved] = useState(false);
 
   const dirty = JSON.stringify(form) !== baseline;

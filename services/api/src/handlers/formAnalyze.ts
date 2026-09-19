@@ -1,4 +1,4 @@
-// Form Analyze API Handler — classifies form fields using Bedrock LLM with deterministic fallback
+// Form Analyze API Handler: classifies form fields using Bedrock LLM with deterministic fallback
 
 import { FormAnalyzeRequestSchema } from "../validation/inputSchemas";
 import { invokeBedrock } from "../bedrock/client";

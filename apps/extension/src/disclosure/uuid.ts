@@ -1,4 +1,4 @@
-// Minimal UUID v4 implementation — no external dependency needed
+// Minimal UUID v4 implementation, no external dependency needed
 export function v4(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;

@@ -27,7 +27,7 @@ const version = JSON.parse(readFileSync(path.join(here, "../manifest.json"), "ut
 
 function toMarkdown(doc, other, otherFile) {
   const lines = [
-    `# Data Firewall — ${doc.title}`,
+    `# Data Firewall ${doc.title}`,
     "",
     `_Effective ${EFFECTIVE_DATE} · Version ${version}_`,
     "",

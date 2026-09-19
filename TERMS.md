@@ -61,7 +61,7 @@ These terms are governed by the laws of [add your country or state].
 
 ## 13. Contact
 
-Questions about these terms can be sent to [add a contact email address].
+Questions about these terms can be sent to iamaveragedeveloper@gmail.com.
 
 ---
 

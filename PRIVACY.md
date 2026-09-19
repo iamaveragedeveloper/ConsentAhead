@@ -72,7 +72,7 @@ If the extension's behaviour changes in a way that affects your information, we 
 
 ## 12. Contact
 
-Questions about this policy can be sent to [add a contact email address].
+Questions about this policy can be sent to iamaveragedeveloper@gmail.com.
 
 ---
 

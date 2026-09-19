@@ -22,7 +22,7 @@ export const EFFECTIVE_DATE = "19 September 2026";
 
 // Fill these in before publishing (see the note at the end of this file).
 export const DEVELOPER = "the Data Firewall developers";
-export const CONTACT = "[add a contact email address]";
+export const CONTACT = "iamaveragedeveloper@gmail.com";
 export const GOVERNING_LAW = "[add your country or state]";
 
 export const PRIVACY: LegalDoc = {

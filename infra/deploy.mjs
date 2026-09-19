@@ -60,6 +60,13 @@ if (process.argv.includes("--destroy")) {
 // 2. Build
 console.log("\nBuilding the API...");
 node("build-lambda.mjs");
+console.log("Building the extension for the download (on-device mode, no API address baked in)...");
+{
+  const env = { ...process.env };
+  delete env.VITE_API_BASE_URL;
+  const r = spawnSync("pnpm", ["build:extension"], { stdio: "inherit", cwd: root, env, shell: true });
+  if (r.status !== 0) process.exit(r.status ?? 1);
+}
 console.log("Building the website...");
 node("build-site.mjs");
 

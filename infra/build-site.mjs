@@ -25,6 +25,9 @@ esbuild.buildSync({ entryPoints: [path.join(root, "apps/extension/src/legal/cont
 const { PRIVACY, TERMS, EFFECTIVE_DATE } = await import(pathToFileURL(outfile).href);
 const version = JSON.parse(readFileSync(path.join(root, "apps/extension/manifest.json"), "utf8")).version;
 
+// The extension's Chrome Web Store listing (unlisted, opened by link)
+const STORE_URL = "https://chromewebstore.google.com/detail/personal-data-firewall/cennoldpodbdeafjjcpeocilaibnejlp";
+
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 // ── Minimal zip writer (deflate, forward-slash paths, so it opens correctly everywhere) ──
@@ -80,6 +83,9 @@ footer{margin-top:56px;color:#8b8b95;font-size:13px}
 .card b{color:#fff}
 .btn{display:inline-block;background:#7dd3a8;color:#06130c;font-weight:600;padding:10px 18px;border-radius:10px;margin:6px 0}
 .btn:hover{text-decoration:none;filter:brightness(1.08)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 4px}
+.btn.secondary{background:transparent;color:#e7e7ea;border:1px solid #2c2c36}
+.btn.secondary:hover{background:#17171d}
 .small{font-size:13px;color:#8b8b95}
 code{background:#1a1a21;border:1px solid #23232b;border-radius:6px;padding:1px 6px;font-size:14px;color:#e7e7ea}
 table{border-collapse:collapse;width:100%;font-size:15px;margin:10px 0}
@@ -162,11 +168,13 @@ const judges = `<h1>For judges</h1>
 ${videoBlock}
 
 <h2>Try it in 3 minutes</h2>
-<p><a class="btn" href="/downloads/${esc(zipName)}">Download the extension (${zipKb} KB)</a><br><span class="small">Also on the Chrome Web Store if the listing link was provided with the submission.</span></p>
+<div class="actions">
+<a class="btn" href="${STORE_URL}" target="_blank" rel="noopener">View in Chrome Web Store</a>
+<a class="btn secondary" href="/downloads/${esc(zipName)}">Manual download (${zipKb} KB)</a>
+</div>
+<p class="small">Install from the store in one click, or download the zip if you prefer to load it yourself.</p>
 <ol>
-<li>Unzip the download. You get one folder called <code>data-firewall</code>.</li>
-<li>In Chrome open <code>chrome://extensions</code> and switch on <b>Developer mode</b> (top right).</li>
-<li>Click <b>Load unpacked</b> and choose the <code>data-firewall</code> folder.</li>
+<li><b>Install.</b> Click <b>View in Chrome Web Store</b> and press <b>Add to Chrome</b>. Or use the manual download: unzip it, open <code>chrome://extensions</code>, switch on <b>Developer mode</b> (top right), click <b>Load unpacked</b> and choose the <code>data-firewall</code> folder.</li>
 <li>Click the extension icon. It asks you to create an account: use any name, email and password. It takes 20 seconds and stays on your device. Then save a few details in the Vault.</li>
 <li>Open the <a href="/demo/index.html">demo company sign-up page</a>. Click the extension icon in the Chrome toolbar (pin it from the puzzle-piece menu if you don't see it).</li>
 <li>Watch the privacy scan run. Open a finding to jump to the exact sentence in the company's policy, highlighted.</li>
